@@ -7,3 +7,9 @@ edition = "2021"
 
 [dependencies]
 line_bot_sdk = { git = "https://github.com/shinbunbun/line-bot-example-rust/", rev = "2ccf5180a52fd9120195e0bdddbbbe7a099013d5"}
+actix-web = "4"
+env_logger="0"
+log="0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dotenv = "0"

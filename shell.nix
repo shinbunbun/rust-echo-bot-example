@@ -6,6 +6,7 @@ in pkgs.mkShell {
     rustup
     openssl
     pkg-config
+    ngrok
   ];
   shellHook = ''
   rustup component add rustfmt clippy
