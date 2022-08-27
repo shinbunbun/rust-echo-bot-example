@@ -59,7 +59,7 @@ fn verify_signature(client: &Client, signature: &str, context: &str) -> Result<(
 }
 
 fn get_webhook_event(context: &str) -> Result<Root, AppError> {
-    serde_json::from_str(context).map_err(AppError::SerdeJson)
+    Ok(serde_json::from_str(context)?)
 }
 
 async fn webhook_handler(
