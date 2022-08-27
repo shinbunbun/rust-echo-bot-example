@@ -10,7 +10,6 @@ use line_bot_sdk::{
 use log::info;
 
 use actix_web::{rt::spawn, HttpResponse, Responder};
-use dotenv::dotenv;
 use line_bot_sdk::extractor::CustomHeader;
 use line_bot_sdk::models::message::MessageObject;
 use line_bot_sdk::models::webhook_event;
@@ -20,16 +19,14 @@ use serde::{Deserialize, Serialize};
 use crate::error::AppError;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ReplyMessage {
-    #[serde(rename(serialize = "replyToken"))]
     reply_token: String,
     messages: Vec<MessageObject>,
 }
 
 pub async fn handler(context: String, custom_header: CustomHeader) -> impl Responder {
     info!("Request body: {}", context);
-
-    read_dotenv();
 
     let client = create_line_bot_client().unwrap();
 
@@ -42,10 +39,6 @@ pub async fn handler(context: String, custom_header: CustomHeader) -> impl Respo
     spawn(async move { webhook_handler(&webhook_event, &client).await.unwrap() });
 
     HttpResponse::Ok().body("")
-}
-
-fn read_dotenv() {
-    dotenv().ok();
 }
 
 fn create_line_bot_client() -> Result<Client, AppError> {
