@@ -9,7 +9,7 @@ use line_bot_sdk::{
 };
 use log::info;
 
-use actix_web::{HttpResponse, Responder};
+use actix_web::{rt::spawn, HttpResponse, Responder};
 use dotenv::dotenv;
 use line_bot_sdk::extractor::CustomHeader;
 use line_bot_sdk::models::message::MessageObject;
@@ -40,7 +40,8 @@ pub async fn handler(
 
     let context: webhook_event::Root =
         serde_json::from_str(&context).map_err(AppError::SerdeJson)?;
-    webhook_handler(context, client).await
+    spawn(async { webhook_handler(context, client).await });
+    Ok(HttpResponse::Ok().body(""))
 }
 
 async fn webhook_handler(
