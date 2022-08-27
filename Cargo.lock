@@ -955,7 +955,7 @@ checksum = "8371e4e5341c3a96db127eb2465ac681ced4c433e01dd0e938adbef26ba93ba5"
 [[package]]
 name = "line_bot_sdk"
 version = "0.1.0"
-source = "git+https://github.com/shinbunbun/line-bot-example-rust/?rev=2ccf5180a52fd9120195e0bdddbbbe7a099013d5#2ccf5180a52fd9120195e0bdddbbbe7a099013d5"
+source = "git+https://github.com/shinbunbun/line-bot-example-rust/?rev=e5cd96174e7274a096484d9715ef393e73c56ccd#e5cd96174e7274a096484d9715ef393e73c56ccd"
 dependencies = [
  "actix-http",
  "actix-rt 1.1.1",
@@ -976,6 +976,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "sha2",
+ "thiserror",
  "typed-builder",
  "validator",
 ]

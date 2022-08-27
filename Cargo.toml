@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-line_bot_sdk = { git = "https://github.com/shinbunbun/line-bot-example-rust/", rev = "2ccf5180a52fd9120195e0bdddbbbe7a099013d5"}
+line_bot_sdk = { git = "https://github.com/shinbunbun/line-bot-example-rust/", rev = "e5cd96174e7274a096484d9715ef393e73c56ccd"}
 actix-web = "4"
 env_logger="0"
 log="0"

@@ -1,7 +1,4 @@
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::sync::Arc;
 
 use line_bot_sdk::{
     models::{
@@ -12,7 +9,7 @@ use line_bot_sdk::{
 };
 use log::info;
 
-use actix_web::{get, rt::spawn, web, HttpResponse, Responder};
+use actix_web::{rt::spawn, web, HttpResponse, Responder};
 use line_bot_sdk::extractor::CustomHeader;
 use line_bot_sdk::models::message::MessageObject;
 use line_bot_sdk::models::webhook_event;
@@ -53,9 +50,7 @@ fn get_signature_from_header(custom_header: &CustomHeader) -> &str {
 }
 
 fn verify_signature(client: &Client, signature: &str, context: &str) -> Result<(), AppError> {
-    client
-        .verify_signature(signature, context)
-        .map_err(AppError::LineBotSdkError)
+    Ok(client.verify_signature(signature, context)?)
 }
 
 fn get_webhook_event(context: &str) -> Result<Root, AppError> {
@@ -96,10 +91,5 @@ async fn reply(event: &Event, client: &Client) -> Result<(), AppError> {
         )],
     };
 
-    client
-        .reply(&reply_token, messages, None)
-        .await
-        .map_err(AppError::LineBotSdkError)?;
-
-    Ok(())
+    Ok(client.reply(&reply_token, messages, None).await?)
 }
