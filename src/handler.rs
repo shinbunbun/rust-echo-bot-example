@@ -3,7 +3,7 @@ use std::env;
 use line_bot_sdk::{
     models::{
         message::text::TextMessage,
-        webhook_event::{Event, Message, Text},
+        webhook_event::{Event, Message, Root, Text},
     },
     Client,
 };
@@ -19,37 +19,66 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::AppError;
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ReplyMessage {
+    #[serde(rename(serialize = "replyToken"))]
+    reply_token: String,
+    messages: Vec<MessageObject>,
+}
+
 pub async fn handler(
     context: String,
     custom_header: CustomHeader,
 ) -> Result<impl Responder, AppError> {
     info!("Request body: {}", context);
 
-    dotenv().ok();
+    read_dotenv();
 
-    let client = Client::new(
-        env::var("CHANNEL_ACCESS_TOKEN").map_err(AppError::Env)?,
-        env::var("CHANNEL_SECRET").map_err(AppError::Env)?,
-        env::var("CHANNE_ID").map_err(AppError::Env)?,
-    );
+    let client = create_line_bot_client()?;
 
-    let signature = &custom_header.x_line_signature;
-    client
-        .verify_signature(signature, &context)
-        .map_err(AppError::LineBotSdkError)?;
+    let signature = get_signature_from_header(&custom_header);
 
-    let context: webhook_event::Root =
-        serde_json::from_str(&context).map_err(AppError::SerdeJson)?;
-    spawn(async { webhook_handler(context, client).await });
+    verify_signature(&client, signature, &context)?;
+
+    let webhook_event = get_webhook_event(&context)?;
+
+    spawn(async move { webhook_handler(&webhook_event, &client).await });
+
     Ok(HttpResponse::Ok().body(""))
 }
 
+fn read_dotenv() {
+    dotenv().ok();
+}
+
+fn create_line_bot_client() -> Result<Client, AppError> {
+    Ok(Client::new(
+        env::var("CHANNEL_ACCESS_TOKEN").map_err(AppError::Env)?,
+        env::var("CHANNEL_SECRET").map_err(AppError::Env)?,
+        env::var("CHANNE_ID").map_err(AppError::Env)?,
+    ))
+}
+
+fn get_signature_from_header(custom_header: &CustomHeader) -> &str {
+    &custom_header.x_line_signature
+}
+
+fn verify_signature(client: &Client, signature: &str, context: &str) -> Result<(), AppError> {
+    client
+        .verify_signature(signature, context)
+        .map_err(AppError::LineBotSdkError)
+}
+
+fn get_webhook_event(context: &str) -> Result<Root, AppError> {
+    serde_json::from_str(context).map_err(AppError::SerdeJson)
+}
+
 async fn webhook_handler(
-    context: webhook_event::Root,
-    client: Client,
+    context: &webhook_event::Root,
+    client: &Client,
 ) -> Result<HttpResponse, AppError> {
     for event in &context.events {
-        reply(event, &client).await?;
+        reply(event, client).await?;
     }
     Ok(HttpResponse::Ok().json("Ok"))
 }
@@ -92,11 +121,4 @@ async fn reply(event: &Event, client: &Client) -> Result<(), AppError> {
     }
 
     Ok(())
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct ReplyMessage {
-    #[serde(rename(serialize = "replyToken"))]
-    reply_token: String,
-    messages: Vec<MessageObject>,
 }
