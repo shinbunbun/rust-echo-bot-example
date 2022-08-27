@@ -1,4 +1,7 @@
-use std::env;
+use std::{
+    env,
+    sync::{Arc, Mutex},
+};
 
 use line_bot_sdk::{
     models::{
@@ -9,14 +12,14 @@ use line_bot_sdk::{
 };
 use log::info;
 
-use actix_web::{rt::spawn, HttpResponse, Responder};
+use actix_web::{get, rt::spawn, web, HttpResponse, Responder};
 use line_bot_sdk::extractor::CustomHeader;
 use line_bot_sdk::models::message::MessageObject;
 use line_bot_sdk::models::webhook_event;
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::AppError;
+use crate::{error::AppError, AppState};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -25,10 +28,14 @@ struct ReplyMessage {
     messages: Vec<MessageObject>,
 }
 
-pub async fn handler(context: String, custom_header: CustomHeader) -> impl Responder {
+pub async fn handler(
+    context: String,
+    custom_header: CustomHeader,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
     info!("Request body: {}", context);
 
-    let client = create_line_bot_client().unwrap();
+    let client = Arc::clone(&app_state.line_client);
 
     let signature = get_signature_from_header(&custom_header);
 
@@ -39,14 +46,6 @@ pub async fn handler(context: String, custom_header: CustomHeader) -> impl Respo
     spawn(async move { webhook_handler(&webhook_event, &client).await.unwrap() });
 
     HttpResponse::Ok().body("")
-}
-
-fn create_line_bot_client() -> Result<Client, AppError> {
-    Ok(Client::new(
-        env::var("CHANNEL_ACCESS_TOKEN").map_err(AppError::Env)?,
-        env::var("CHANNEL_SECRET").map_err(AppError::Env)?,
-        env::var("CHANNE_ID").map_err(AppError::Env)?,
-    ))
 }
 
 fn get_signature_from_header(custom_header: &CustomHeader) -> &str {
