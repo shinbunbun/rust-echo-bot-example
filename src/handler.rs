@@ -26,25 +26,22 @@ struct ReplyMessage {
     messages: Vec<MessageObject>,
 }
 
-pub async fn handler(
-    context: String,
-    custom_header: CustomHeader,
-) -> Result<impl Responder, AppError> {
+pub async fn handler(context: String, custom_header: CustomHeader) -> impl Responder {
     info!("Request body: {}", context);
 
     read_dotenv();
 
-    let client = create_line_bot_client()?;
+    let client = create_line_bot_client().unwrap();
 
     let signature = get_signature_from_header(&custom_header);
 
-    verify_signature(&client, signature, &context)?;
+    verify_signature(&client, signature, &context).unwrap();
 
-    let webhook_event = get_webhook_event(&context)?;
+    let webhook_event = get_webhook_event(&context).unwrap();
 
-    spawn(async move { webhook_handler(&webhook_event, &client).await });
+    spawn(async move { webhook_handler(&webhook_event, &client).await.unwrap() });
 
-    Ok(HttpResponse::Ok().body(""))
+    HttpResponse::Ok().body("")
 }
 
 fn read_dotenv() {
@@ -83,13 +80,6 @@ async fn webhook_handler(
     Ok(HttpResponse::Ok().json("Ok"))
 }
 
-async fn reply_message(client: &Client, reply_token: &str, messages: Vec<MessageObject>) {
-    let reply_response = client.reply(reply_token, messages, None).await;
-    if let Err(err) = reply_response {
-        println!("エラーが発生しました: {}", err);
-    }
-}
-
 fn get_text_message(event: &Event) -> Option<&Text> {
     match &event.message {
         Some(Message::Text(message)) => Some(message),
@@ -107,18 +97,17 @@ async fn reply(event: &Event, client: &Client) -> Result<(), AppError> {
         None => return Ok(()),
     };
 
-    match get_text_message(event) {
-        Some(text) => {
-            let messages = vec![create_text_message(&text.text)];
-            reply_message(client, &reply_token, messages).await;
-        }
-        None => {
-            let messages = vec![create_text_message(
-                "テキストメッセージ以外のイベントには対応していません",
-            )];
-            reply_message(client, &reply_token, messages).await;
-        }
-    }
+    let messages = match get_text_message(event) {
+        Some(text) => vec![create_text_message(&text.text)],
+        None => vec![create_text_message(
+            "テキストメッセージ以外のイベントには対応していません",
+        )],
+    };
+
+    client
+        .reply(&reply_token, messages, None)
+        .await
+        .map_err(AppError::LineBotSdkError)?;
 
     Ok(())
 }
